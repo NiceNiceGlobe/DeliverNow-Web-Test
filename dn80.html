@@ -23,10 +23,10 @@ button{font-family:inherit}
 /* nav */
 .nav{position:fixed;z-index:30;top:0;left:0;right:0;padding:18px 0;transition:.35s}
 .nav.scrolled{background:rgba(245,242,237,.9);backdrop-filter:blur(18px);border-bottom:1px solid var(--line)}
-.nav-inner{max-width:1240px;margin:auto;padding:0 28px;display:flex;align-items:center;justify-content:space-between}
+.nav-inner{max-width:1240px;margin:auto;padding:0 28px;display:flex;align-items:center;justify-content:space-between;gap:40px}
 .logo{width:40px;height:40px;border-radius:12px;flex:none}
-.brand{display:flex;align-items:center;gap:11px;font-weight:800;letter-spacing:-.02em;font-size:16px}
-.nav-links{display:flex;gap:26px;align-items:center;font-size:13px;font-weight:700}
+.brand{display:flex;align-items:center;gap:16px;font-weight:800;letter-spacing:-.02em;font-size:16px}
+.nav-links{display:flex;gap:28px;align-items:center;font-size:13px;font-weight:700}
 .nav-links a{opacity:.72;transition:.2s} .nav-links a:hover{opacity:1}
 .nav-cart{background:var(--ink);color:white;padding:11px 16px;border-radius:999px;display:flex;align-items:center;gap:8px}
 .nav-cart b{font-family:'DM Mono',monospace;font-weight:500}
@@ -61,7 +61,7 @@ button{font-family:inherit}
 .k-logo-badge img{width:100%;height:100%;object-fit:contain;display:block;padding:5px;box-sizing:border-box}
 .k-img-wrap > img{width:100%;height:100%;object-fit:cover;object-position:center;display:block;transition:.35s}
 .k-img-wrap > img{width:100%;height:100%;object-fit:cover;object-position:center;display:block;opacity:1;transition:opacity .3s ease, transform .35s ease;}
-.k-img-wrap > img.changing{opacity:0;}
+.k-img-wrap > img.changing{opacity:.15}.restaurant-page-mode #kitchens{display:none!important}.restaurant-page-mode #menu{display:block!important}.restaurant-page-mode #chipRow{display:none!important}.restaurant-page-mode .hero-cta{display:none}.home-page-mode #menu{display:none!important}.restaurant-page-mode .hero-inner .kicker{font-size:12px}.restaurant-page-mode .hero-inner h1{max-width:760px}.restaurant-page-mode .hero-copy{max-width:620px}
 .kitchen-card:hover .k-img-wrap > img{transform:scale(1.05)}
 .kitchen-card .k-top,
 .kitchen-card .k-meta,
@@ -92,7 +92,7 @@ button{font-family:inherit}
 .chip-row{display:flex;gap:8px;overflow-x:auto;padding-bottom:6px;margin-bottom:34px}
 .chip{flex:none;border:1px solid rgba(255,255,255,.22);background:transparent;color:#fff;padding:9px 15px;border-radius:999px;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap}
 .chip.active{background:var(--purple);border-color:var(--purple)}
-.menu-layout{display:grid;grid-template-columns:1.5fr 1fr;gap:50px;align-items:start}
+.menu-layout{display:grid;grid-template-columns:1.5fr 1fr;gap:50px;align-items:start}.order-sidebar{display:flex;flex-direction:column;gap:18px;position:sticky;top:100px}.order-sidebar .order-card{position:static}.delivery-disclaimer{background:#f4f1ec;color:var(--ink);padding:20px 18px;border-radius:0;font-size:12.5px;line-height:1.5}.delivery-disclaimer strong{display:block;font-size:13px;margin-bottom:4px}.delivery-disclaimer p{margin:0;color:#6d6870}
 .menu-list{display:flex;flex-direction:column}
 .menu-category{font-family:'DM Mono',monospace;font-size:11px;letter-spacing:.13em;text-transform:uppercase;color:var(--purple);padding:28px 0 8px;border-bottom:1px solid rgba(255,255,255,.14)}
 .menu-category:first-child{padding-top:0}
@@ -165,7 +165,7 @@ footer{background:#08080a;color:#888;padding:32px 28px}
   .nav-links{display:none} .menu-btn{display:block}
   .hero-radar{width:380px;height:380px;right:-130px;top:2%}
   .menu-layout{grid-template-columns:1fr}
-  .order-card{position:static}
+  .order-sidebar{position:static}.order-card{position:static}
   .route-row{grid-template-columns:1fr 1fr}
   .cta-inner{display:block} .cta-copy{margin-top:16px}
   .footer-inner{display:block} .footer-inner>div{margin-bottom:10px}
@@ -281,50 +281,62 @@ button,a,input,textarea,select{max-width:100%}
   .track-step{font-size:10px;padding:10px 5px}
   .food-badge,.food-visual{display:none}
 }
+.restaurant-page-mode .route-strip,.restaurant-page-mode .cta{display:none!important}</style>
+<style id="restaurant-page-layout">
+.restaurant-page{display:none;background:#f5f2ec;color:#09090b;padding:88px 0 78px}
+.restaurant-page-inner{max-width:1184px;margin:0 auto;padding:0 32px}
+.restaurant-breadcrumb{display:flex;align-items:center;gap:7px;color:#68636d;font-size:13px;margin-bottom:34px}
+.restaurant-breadcrumb a{color:#68636d;text-decoration:underline;text-underline-offset:3px}
+.restaurant-breadcrumb strong{color:#68636d}
+.restaurant-hero-grid{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,.95fr);gap:55px;align-items:center}
+.restaurant-hero-media{position:relative;height:510px;border-radius:3px;overflow:hidden;background:#ddd7cc}
+.restaurant-hero-media>img{width:100%;height:100%;object-fit:cover;display:block}
+.restaurant-logo-badge{position:absolute;left:22px;bottom:19px;width:76px;height:76px;border-radius:50%;background:#fff;display:grid;place-items:center;overflow:hidden;box-shadow:0 10px 25px rgba(0,0,0,.16);border:1px solid rgba(0,0,0,.06)}
+.restaurant-logo-badge img{width:70%;height:70%;object-fit:contain;border-radius:50%}
+.restaurant-copy{min-width:0}
+.restaurant-kicker{font:500 11px 'DM Mono',monospace;letter-spacing:.16em;text-transform:uppercase;color:#d5168c;margin-bottom:12px}
+.restaurant-title{font-size:clamp(4rem,7vw,6.4rem);line-height:.9;letter-spacing:-.075em;margin:0 0 25px;font-weight:900;max-width:620px}
+.restaurant-description{font-size:17px;line-height:1.55;color:#625d67;max-width:590px;margin:0 0 28px}
+.restaurant-facts{display:grid;grid-template-columns:1fr 1fr;margin-bottom:26px;border-top:1px solid #d8d4ce}
+.restaurant-fact{padding:17px 18px;border-bottom:1px solid #d8d4ce;min-height:73px}
+.restaurant-fact:nth-child(odd){border-right:1px solid #d8d4ce}
+.restaurant-fact.full{grid-column:1/-1}
+.restaurant-fact.full{border-right:0}
+.restaurant-fact-label{display:block;font:500 9px 'DM Mono',monospace;letter-spacing:.12em;text-transform:uppercase;color:#77717b;margin-bottom:9px}
+.restaurant-fact-value{font-size:14px;font-weight:800;line-height:1.35}
+.restaurant-actions{display:flex;gap:10px;align-items:center}
+.restaurant-actions a{display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:0 20px;border-radius:999px;font-size:13px;font-weight:900;text-decoration:none}
+.restaurant-menu-btn{background:#09090b;color:#fff}
+.restaurant-all-btn{border:1px solid #09090b;color:#09090b;background:transparent}
+.restaurant-details{display:none;background:var(--paper);padding:86px 0 118px}.restaurant-details-inner{max-width:1240px;margin:0 auto;padding:0 32px}.restaurant-details-grid{display:grid;grid-template-columns:minmax(0,1.55fr) minmax(280px,.8fr);gap:90px;align-items:start}.restaurant-details-kicker{font-family:'DM Mono',monospace;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--purple);margin-bottom:18px}.restaurant-details-title{font-size:clamp(3rem,5.2vw,4.5rem);line-height:.98;letter-spacing:-.055em;margin:0;max-width:720px}.restaurant-details-copy{color:var(--muted);font-size:14px;line-height:1.55;padding-top:110px;max-width:390px}.restaurant-details-facts{margin-top:48px;border-top:1px solid var(--line);max-width:800px;display:grid;grid-template-columns:1fr 1fr}.restaurant-details-fact{padding:17px 18px;border-bottom:1px solid var(--line)}.restaurant-details-fact:nth-child(odd){border-right:1px solid var(--line)}.restaurant-details-fact.full{grid-column:1/-1;border-right:0}.restaurant-details-label{display:block;font-family:'DM Mono',monospace;font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:#777;margin-bottom:10px}.restaurant-details-value{display:block;font-size:14px;font-weight:800;line-height:1.45}.restaurant-page-mode .restaurant-details{display:block}@media(max-width:900px){.restaurant-details{padding:70px 0 80px}.restaurant-details-inner{padding:0 20px}.restaurant-details-grid{grid-template-columns:1fr;gap:28px}.restaurant-details-copy{padding-top:0}.restaurant-details-facts{margin-top:36px}}@media(max-width:560px){.restaurant-details-title{font-size:clamp(2.6rem,12vw,4rem)}.restaurant-details-facts{grid-template-columns:1fr}.restaurant-details-fact:nth-child(odd){border-right:0}}
+.restaurant-page-mode .restaurant-page{display:block}
+.restaurant-page-mode .hero{display:none}
+.restaurant-page-mode #kitchens{display:none}
+.restaurant-page-mode #menu{display:block!important;padding-top:78px}
+.restaurant-page-mode #chipRow{display:none}
+.restaurant-page-mode .nav-links #navKitchens{display:inline-flex;font-size:13px}
+.restaurant-page-mode #trackNav,.restaurant-page-mode #signinNav{display:none}
+.restaurant-page-mode .nav-cart{display:inline-flex}
+@media(max-width:900px){
+.restaurant-page{padding:34px 0 60px}
+.restaurant-page-inner{padding:0 20px}
+.restaurant-hero-grid{grid-template-columns:1fr;gap:30px}
+.restaurant-hero-media{height:min(70vw,480px)}
+.restaurant-title{font-size:clamp(3.4rem,12vw,5.5rem)}
+}
+@media(max-width:560px){
+.restaurant-page-inner{padding:0 18px}
+.restaurant-breadcrumb{margin-bottom:24px}
+.restaurant-hero-media{height:72vw;min-height:280px}
+.restaurant-description{font-size:15px}
+.restaurant-facts{grid-template-columns:1fr}
+.restaurant-fact:nth-child(odd){border-right:0}
+.restaurant-fact.full{grid-column:auto}
+.restaurant-actions{flex-wrap:wrap}
+}
 </style>
 
-<style id="dummy-route-animation">
-/* Dummy delivery route: curved, pulsing and self-contained */
-.dn-demo-route-svg{width:100%;height:100%;display:block;overflow:visible}
-.dn-demo-route-shadow{
-  fill:none;stroke:rgba(20,20,24,.18);stroke-width:11;stroke-linecap:round;
-}
-.dn-demo-route-base{
-  fill:none;stroke:rgba(160,40,184,.28);stroke-width:5;stroke-linecap:round;
-}
-.dn-demo-route-pulse{
-  fill:none;stroke:#a028b8;stroke-width:5;stroke-linecap:round;
-  stroke-dasharray:12 18;animation:dnRouteHeartbeat 1.25s linear infinite;
-  filter:drop-shadow(0 0 5px rgba(160,40,184,.55));
-}
-.dn-demo-route-pulse2{
-  fill:none;stroke:#d24ae5;stroke-width:2.5;stroke-linecap:round;
-  stroke-dasharray:3 27;animation:dnRouteHeartbeat 1.25s linear infinite reverse;
-  opacity:.95;
-}
-.dn-demo-route-dot{
-  fill:#fff;stroke:#a028b8;stroke-width:4;
-  transform-box:fill-box;transform-origin:center;
-  animation:dnRouteBeat 1.25s ease-in-out infinite;
-}
-@keyframes dnRouteHeartbeat{
-  0%{stroke-dashoffset:120;opacity:.45}
-  18%{opacity:1}
-  35%{opacity:.7}
-  52%{opacity:1}
-  100%{stroke-dashoffset:0;opacity:.45}
-}
-@keyframes dnRouteBeat{
-  0%,100%{transform:scale(1)}
-  12%{transform:scale(1.18)}
-  22%{transform:scale(.94)}
-  32%{transform:scale(1.12)}
-  46%{transform:scale(1)}
-}
-@media (prefers-reduced-motion:reduce){
-  .dn-demo-route-pulse,.dn-demo-route-pulse2,.dn-demo-route-dot{animation:none}
-}
-</style>
+
 
 </head>
 <body>
@@ -336,8 +348,8 @@ button,a,input,textarea,select{max-width:100%}
       Deliver Now
     </a>
     <div class="nav-links">
-      <a href="#kitchens">Kitchens</a>
-      <a href="#menu">Menu</a>
+      <a href="#kitchens" id="navKitchens">Kitchens</a>
+      <a href="#menu" id="navMenu">Menu</a>
       <a href="#orders" id="trackNav">Track order</a>
       <a href="javascript:void(0)" class="nav-account" id="signinNav">Sign in</a>
       <a class="nav-cart" href="#menu"><span>🛍</span><b id="navCartCount">0 items</b></a>
@@ -345,6 +357,53 @@ button,a,input,textarea,select{max-width:100%}
     <button class="menu-btn" aria-label="Menu">☰</button>
   </div>
 </nav>
+
+<section class="restaurant-page" id="restaurantPage">
+  <div class="restaurant-page-inner">
+    <div class="restaurant-breadcrumb">
+      <a href="dn80.html">Deliver Now</a>
+      <span>/</span>
+      <strong id="restaurantBreadcrumbName">Restaurant</strong>
+    </div>
+    <div class="restaurant-hero-grid">
+      <div class="restaurant-hero-media">
+        <img id="restaurantHeroImage" src="" alt="Restaurant food">
+        <div class="restaurant-logo-badge"><img id="restaurantHeroLogo" src="" alt="Restaurant logo"></div>
+      </div>
+      <div class="restaurant-copy">
+        <div class="restaurant-kicker" id="restaurantHeroKicker">Nigerian · Deliver Now restaurant</div>
+        <h1 class="restaurant-title" id="restaurantHeroTitle">Restaurant</h1>
+        <p class="restaurant-description" id="restaurantHeroDescription">Browse the full menu, restaurant information and delivery details.</p>
+        <div class="restaurant-facts">
+          <div class="restaurant-fact">
+            <span class="restaurant-fact-label">Cuisine</span>
+            <span class="restaurant-fact-value" id="restaurantCuisine">—</span>
+          </div>
+          <div class="restaurant-fact">
+            <span class="restaurant-fact-label">Rating</span>
+            <span class="restaurant-fact-value" id="restaurantRating">—</span>
+          </div>
+          <div class="restaurant-fact">
+            <span class="restaurant-fact-label">Delivery estimate</span>
+            <span class="restaurant-fact-value" id="restaurantEta">—</span>
+          </div>
+          <div class="restaurant-fact">
+            <span class="restaurant-fact-label">Menu</span>
+            <span class="restaurant-fact-value" id="restaurantMenuCount">—</span>
+          </div>
+          <div class="restaurant-fact full">
+            <span class="restaurant-fact-label">Address / service area</span>
+            <span class="restaurant-fact-value" id="restaurantAddress">—</span>
+          </div>
+        </div>
+        <div class="restaurant-actions">
+          <a class="restaurant-menu-btn" href="#menu">View full menu ↓</a>
+          <a class="restaurant-all-btn" href="dn80.html">← All restaurants</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
 
 <main id="top">
 
@@ -402,7 +461,8 @@ button,a,input,textarea,select{max-width:100%}
     <div class="chip-row" id="chipRow"></div>
     <div class="menu-layout">
       <div class="menu-list" id="menuList"></div>
-      <div class="order-card">
+      <div class="order-sidebar">
+        <div class="order-card">
         <div class="menu-preview" id="menuPreview">
           <div class="menu-preview-frame"><img id="menuPreviewImage" src="" alt=""></div>
           <div class="menu-preview-caption" id="menuPreviewCaption"></div>
@@ -413,7 +473,46 @@ button,a,input,textarea,select{max-width:100%}
         <div class="order-total" id="orderTotal" style="display:none"><span>Total</span><span id="orderTotalValue">R0</span></div>
         <button class="confirm-btn" id="confirmBtn" disabled>Checkout</button>
         <div class="confirm-note" id="confirmNote"></div>
+        </div>
+        <div class="delivery-disclaimer">
+          <strong>Delivery information</strong>
+          <p>Delivery estimate: 25–40 min. The final delivery timing can depend on order preparation and rider availability. Your order is sent through the Deliver Now request flow.</p>
+        </div>
       </div>
+    </div>
+  </div>
+</section>
+
+<section class="restaurant-details" id="restaurantDetails">
+  <div class="restaurant-details-inner">
+    <div class="restaurant-details-grid">
+      <div>
+        <div class="restaurant-details-kicker">Restaurant details</div>
+        <h2 class="restaurant-details-title" id="restaurantDetailsTitle">Everything about Restaurant in one place.</h2>
+        <div class="restaurant-details-facts">
+          <div class="restaurant-details-fact">
+            <span class="restaurant-details-label">Restaurant</span>
+            <span class="restaurant-details-value" id="restaurantDetailsName">—</span>
+          </div>
+          <div class="restaurant-details-fact">
+            <span class="restaurant-details-label">Cuisine</span>
+            <span class="restaurant-details-value" id="restaurantDetailsCuisine">—</span>
+          </div>
+          <div class="restaurant-details-fact">
+            <span class="restaurant-details-label">Rating</span>
+            <span class="restaurant-details-value" id="restaurantDetailsRating">—</span>
+          </div>
+          <div class="restaurant-details-fact">
+            <span class="restaurant-details-label">Delivery</span>
+            <span class="restaurant-details-value" id="restaurantDetailsEta">—</span>
+          </div>
+          <div class="restaurant-details-fact full">
+            <span class="restaurant-details-label">Location / service area</span>
+            <span class="restaurant-details-value" id="restaurantDetailsAddress">—</span>
+          </div>
+        </div>
+      </div>
+      <p class="restaurant-details-copy">This dedicated page keeps the restaurant information, menu and delivery details together in one place.</p>
     </div>
   </div>
 </section>
@@ -558,6 +657,12 @@ let lastOrder=null;
 let currentUser=null;
 let customerAddresses=[];
 let trackingTimer=null;
+const restaurantPageId=new URLSearchParams(location.search).get('restaurant');
+if(restaurantPageId){
+  document.documentElement.classList.add('restaurant-page-mode');
+}else{
+  document.documentElement.classList.add('home-page-mode');
+}
 
 async function apiRequest(endpoint,options={}){
   const response=await fetch(`${API_URL}${endpoint}`,{
@@ -700,36 +805,78 @@ async function loadFeaturedImage(kitchen) {
 }
 
 async function loadRestaurants(){
-  const data = await apiRequest('/public/restaurants');
+  if(restaurantPageId){
+    let result=null;
+    try{
+      if(currentUser){
+        result=await apiRequest(`/customer/restaurant/${encodeURIComponent(restaurantPageId)}`);
+      }
+    }catch{}
+    if(!result){
+      result=await apiRequest(`/public/restaurants/${encodeURIComponent(restaurantPageId)}`);
+    }
 
-  kitchens = (Array.isArray(data) ? data : [])
-    .map(normaliseRestaurant);
-
-  if(!kitchens.length){
-
-    document.getElementById('kitchenGrid').innerHTML =
-      '<p class="order-empty">No kitchens are available right now.</p>';
-
-    document.getElementById('menuList').innerHTML =
-      '<p class="order-empty">No menu items are available.</p>';
-
+    const restaurant=result?.restaurant||{};
+    const merchantId=restaurant.merchantId||restaurant.id||restaurantPageId;
+    const kitchen={
+      id:merchantId,
+      merchantId,
+      name:restaurant.restaurantName||'Restaurant',
+      cuisine:restaurant.cuisineType||'Food',
+      rating:Number(restaurant.averageRating??restaurant.rating??0),
+      eta:restaurant.estimatedDeliveryTime||'20–35 min',
+      address:restaurant.address||restaurant.addressLine||'Cape Town',
+      logo:resolveImageUrl(restaurant.logoUrl)||null,
+      logoUrl:resolveImageUrl(restaurant.logoUrl)||null,
+      img:getRestaurantImage(restaurant),
+      featuredImages:[],
+      featuredIndex:0,
+      deliveryFee:Number(restaurant.deliveryFee??DELIVERY_FEE_FALLBACK),
+      menu:(Array.isArray(result?.menuItems)?result.menuItems:[]).map(item=>{
+        const imageUrl=resolveImageUrl(item?.imageUrl||item?.image||item?.photoUrl||item?.photo||item?.imagePath||item?.imageUri||'');
+        return {
+          id:item.id,
+          menuItemId:item.id,
+          name:item.name||'Menu item',
+          desc:item.description||'',
+          price:Number(item.finalPrice??item.originalPrice??0),
+          originalPrice:Number(item.originalPrice??item.finalPrice??0),
+          finalPrice:Number(item.finalPrice??item.originalPrice??0),
+          available:item.isAvailable!==false,
+          category:item.category||'Menu',
+          img:imageUrl,
+          imageUrl,
+          discountPercentage:Number(item.discountPercentage||0),
+          hasPromotion:item.hasPromotion===true,
+          promotionName:item.promotionName||''
+        };
+      })
+    };
+    kitchen.featuredImages=kitchen.menu.map(item=>getMenuImage(item,kitchen)).filter(Boolean);
+    kitchen.featuredImage=kitchen.featuredImages[0]||kitchen.img;
+    kitchens=[kitchen];
+    currentKitchen=kitchen;
+    renderKitchenGrid();
+    renderChips();
+    renderMenu();
+    renderRestaurantHero();
     return;
   }
 
-  currentKitchen = kitchens[0];
+  const data=await apiRequest('/public/restaurants');
+  kitchens=(Array.isArray(data)?data:[]).map(normaliseRestaurant);
 
-  await Promise.all(
-    kitchens.map(kitchen => loadFeaturedImage(kitchen))
-  );
+  if(!kitchens.length){
+    document.getElementById('kitchenGrid').innerHTML='<p class="order-empty">No restaurants are available right now.</p>';
+    document.getElementById('menuList').innerHTML='<p class="order-empty">No menu items are available.</p>';
+    return;
+  }
 
+  await Promise.all(kitchens.map(kitchen=>loadFeaturedImage(kitchen)));
+  currentKitchen=kitchens[0];
   renderKitchenGrid();
   renderChips();
-
-  await loadRestaurantMenu(
-    currentKitchen.merchantId,
-    false
-  );
-
+  await loadRestaurantMenu(currentKitchen.merchantId,false);
   startFeaturedImageRotation();
 }
 
@@ -786,7 +933,13 @@ async function loadRestaurantMenu(merchantId,scroll=true){
   document.getElementById('menuEta').textContent='Loading menu…';
 
   try{
-    const result=await apiRequest(`/public/restaurants/${encodeURIComponent(merchantId)}`);
+    let result=null;
+    if(currentUser){
+      try{result=await apiRequest(`/customer/restaurant/${encodeURIComponent(merchantId)}`);}catch{}
+    }
+    if(!result){
+      result=await apiRequest(`/public/restaurants/${encodeURIComponent(merchantId)}`);
+    }
     const restaurant=result?.restaurant||{};
 
     kitchen.name=restaurant.restaurantName||kitchen.name;
@@ -869,13 +1022,19 @@ function renderKitchenGrid(){
       <div class="k-meta">${k.rating?`★ ${Number(k.rating).toFixed(1)}`:'NEW MERCHANT'}</div>
       <div class="k-eta">Driver ETA — ${k.eta}</div>
       <div class="k-addr">${k.address}</div>
-      <button class="k-btn">View menu</button>
+      <a class="k-btn" href="?restaurant=${encodeURIComponent(k.merchantId)}">View restaurant</a>
     </div>`).join('');
 
   grid.querySelectorAll('.kitchen-card').forEach(card=>{
-    card.querySelector('.k-btn').addEventListener('click',()=>{
-      loadRestaurantMenu(card.dataset.id,true);
-    });
+    const link=card.querySelector('.k-btn');
+    if(restaurantPageId){
+      link.href='#menu';
+      link.textContent='View menu';
+      link.addEventListener('click',event=>{
+        event.preventDefault();
+        document.getElementById('menu').scrollIntoView({behavior:'smooth'});
+      });
+    }
   });
 }
 
@@ -1559,11 +1718,97 @@ async function initialiseAccount(){
   }
 }
 
+function renderRestaurantHero(){
+  if(!restaurantPageId||!currentKitchen)return;
+
+  document.title=`${currentKitchen.name} — Deliver Now`;
+
+  const name=currentKitchen.name||'Restaurant';
+  const cuisine=currentKitchen.cuisine||'Food';
+  const rating=Number(currentKitchen.rating||0);
+  const eta=currentKitchen.eta||'20–35 min';
+  const address=currentKitchen.address||'Cape Town';
+  const menuCount=Array.isArray(currentKitchen.menu)?currentKitchen.menu.length:0;
+  const heroImage=currentKitchen.featuredImages?.[0]||getRestaurantImage(currentKitchen);
+
+  const breadcrumb=document.getElementById('restaurantBreadcrumbName');
+  const kicker=document.getElementById('restaurantHeroKicker');
+  const title=document.getElementById('restaurantHeroTitle');
+  const description=document.getElementById('restaurantHeroDescription');
+  const cuisineEl=document.getElementById('restaurantCuisine');
+  const ratingEl=document.getElementById('restaurantRating');
+  const etaEl=document.getElementById('restaurantEta');
+  const countEl=document.getElementById('restaurantMenuCount');
+  const addressEl=document.getElementById('restaurantAddress');
+  const image=document.getElementById('restaurantHeroImage');
+  const logo=document.getElementById('restaurantHeroLogo');
+  const navKitchens=document.getElementById('navKitchens');
+
+  if(breadcrumb)breadcrumb.textContent=name;
+  if(kicker)kicker.textContent=`${cuisine} · Deliver Now restaurant`;
+  if(title)title.textContent=name;
+  if(description)description.textContent=`Browse the full ${cuisine.toLowerCase()} menu, restaurant information and delivery details. Add items directly from this restaurant page and continue to the Deliver Now request flow.`;
+  if(cuisineEl)cuisineEl.textContent=cuisine;
+  if(ratingEl)ratingEl.textContent=rating>0?`★ ${rating.toFixed(1)}`:'New merchant';
+  if(etaEl)etaEl.textContent=eta;
+  if(countEl)countEl.textContent=`${menuCount} ${menuCount===1?'item':'items'}`;
+  if(addressEl)addressEl.textContent=address;
+  if(image){image.src=heroImage;image.alt=`${name} food`}
+  if(logo){logo.src=currentKitchen.logo||'';logo.alt=`${name} logo`;logo.parentElement.style.display=currentKitchen.logo?'grid':'none'}
+
+
+  const detailsTitle=document.getElementById('restaurantDetailsTitle');
+  const detailsName=document.getElementById('restaurantDetailsName');
+  const detailsCuisine=document.getElementById('restaurantDetailsCuisine');
+  const detailsRating=document.getElementById('restaurantDetailsRating');
+  const detailsEta=document.getElementById('restaurantDetailsEta');
+  const detailsAddress=document.getElementById('restaurantDetailsAddress');
+
+  if(detailsTitle)detailsTitle.textContent=`Everything about ${name} in one place.`;
+  if(detailsName)detailsName.textContent=name;
+  if(detailsCuisine)detailsCuisine.textContent=cuisine;
+  if(detailsRating)detailsRating.textContent=rating>0?`★ ${rating.toFixed(1)}`:'New merchant';
+  if(detailsEta)detailsEta.textContent=eta;
+  if(detailsAddress)detailsAddress.textContent=address;
+
+  if(navKitchens){
+    navKitchens.href='dn80.html';
+    navKitchens.textContent='All restaurants';
+  }
+
+  const brand=document.querySelector('.brand');
+  if(brand){
+    brand.href='dn80.html';
+  }
+
+  const navMenu=document.getElementById('navMenu');
+  if(navMenu){
+    navMenu.href='#menu';
+    navMenu.textContent='Menu';
+  }
+
+  const navCart=document.querySelector('.nav-cart');
+  if(navCart){
+    navCart.href='#menu';
+  }
+
+  const navCartCount=document.getElementById('navCartCount');
+  if(navCartCount){
+    navCartCount.textContent=`${cart.length} item${cart.length===1?'':'s'} · Order`;
+  }
+}
+
 async function renderAll(){
+  const brand=document.querySelector('.brand');
+  if(brand&&!restaurantPageId){
+    brand.href='#top';
+  }
+
   await initialiseAccount();
 
   try{
     await loadRestaurants();
+    renderRestaurantHero();
   }catch(error){
     document.getElementById('kitchenGrid').innerHTML=
       '<p class="order-empty">We could not load kitchens right now. Please refresh and try again.</p>';
@@ -1572,34 +1817,15 @@ async function renderAll(){
   }
 
   renderOrder();
+
+  if(restaurantPageId){
+    const navCartCount=document.getElementById('navCartCount');
+    if(navCartCount)navCartCount.textContent=`${cart.length} item${cart.length===1?'':'s'} · Order`;
+  }
 }
 
 renderAll();
 </script>
-
-<!-- Dummy delivery route: restaurant pickup -> customer destination -->
-<div class="dn-demo-route-wrap" aria-label="Demo delivery route">
-  <svg class="dn-demo-route-svg" viewBox="0 0 900 360" role="img" aria-label="Animated demo route from restaurant pickup to customer">
-    <defs>
-      <filter id="dnRouteGlow" x="-30%" y="-30%" width="160%" height="160%">
-        <feGaussianBlur stdDeviation="3" result="blur"/>
-        <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
-      </filter>
-    </defs>
-    <!-- Curved route, not a straight line -->
-    <path class="dn-demo-route-shadow"
-          d="M110 275 C155 245, 150 155, 245 150 S330 285, 430 235 S545 75, 640 125 S730 235, 790 82"/>
-    <path class="dn-demo-route-base"
-          d="M110 275 C155 245, 150 155, 245 150 S330 285, 430 235 S545 75, 640 125 S730 235, 790 82"/>
-    <path class="dn-demo-route-pulse"
-          d="M110 275 C155 245, 150 155, 245 150 S330 285, 430 235 S545 75, 640 125 S730 235, 790 82"
-          filter="url(#dnRouteGlow)"/>
-    <path class="dn-demo-route-pulse2"
-          d="M110 275 C155 245, 150 155, 245 150 S330 285, 430 235 S545 75, 640 125 S730 235, 790 82"/>
-    <circle class="dn-demo-route-dot" cx="110" cy="275" r="9"/>
-    <circle class="dn-demo-route-dot" cx="790" cy="82" r="9"/>
-  </svg>
-</div>
 
 </body>
 </html>
