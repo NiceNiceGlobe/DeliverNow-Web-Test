@@ -56,12 +56,18 @@ button{font-family:inherit}
 /* kitchen cards */
 .kitchen-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:1px;background:var(--line);border:1px solid var(--line)}
 .kitchen-card{background:var(--paper);padding:0 0 26px;display:flex;flex-direction:column;gap:10px;transition:.2s}
-.k-img-wrap{width:100%;aspect-ratio:16/10;overflow:hidden;background:#fff;position:relative;display:flex;align-items:center;justify-content:center;padding:18px;box-sizing:border-box}
+.k-img-wrap{width:100%;aspect-ratio:16/10;overflow:hidden;background:#fff;position:relative;display:block;padding:0;box-sizing:border-box}
 .k-logo-badge{position:absolute;left:16px;bottom:16px;width:58px;height:58px;border-radius:50%;background:#fff;border:3px solid #fff;box-shadow:0 5px 16px rgba(0,0,0,.18);display:flex;align-items:center;justify-content:center;overflow:hidden;z-index:2}
 .k-logo-badge img{width:100%;height:100%;object-fit:contain;display:block;padding:5px;box-sizing:border-box}
-.k-img-wrap img{width:100%;height:100%;object-fit:contain;display:block;transition:.35s}
-.kitchen-card:hover .k-img-wrap img{transform:scale(1.05)}
-.kitchen-card .k-top,.kitchen-card .k-meta,.kitchen-card .k-eta,.kitchen-card .k-addr,.kitchen-card .k-btn{margin-left:26px;margin-right:26px}
+.k-img-wrap > img{width:100%;height:100%;object-fit:cover;object-position:center;display:block;transition:.35s}
+.k-img-wrap > img{width:100%;height:100%;object-fit:cover;object-position:center;display:block;opacity:1;transition:opacity .3s ease, transform .35s ease;}
+.k-img-wrap > img.changing{opacity:0;}
+.kitchen-card:hover .k-img-wrap > img{transform:scale(1.05)}
+.kitchen-card .k-top,
+.kitchen-card .k-meta,
+.kitchen-card .k-eta,
+.kitchen-card .k-addr,
+.kitchen-card .k-btn{margin-left:26px;margin-right:26px}
 .kitchen-card .k-eta{margin-top:2px}
 .kitchen-card:hover{background:#fff}
 .k-top{display:flex;justify-content:space-between;align-items:baseline;gap:10px}
@@ -71,7 +77,8 @@ button{font-family:inherit}
 .k-eta{font-family:'DM Mono',monospace;font-size:12px;background:#111014;color:#fff;display:inline-flex;align-items:center;gap:6px;padding:5px 10px;border-radius:999px;width:fit-content}
 .k-addr{font-size:12.5px;color:var(--muted);line-height:1.4}
 .k-btn{margin-top:auto;border:1.5px solid var(--ink);border-radius:999px;padding:10px 16px;font-weight:800;font-size:13px;background:none;cursor:pointer;text-align:center}
-.k-btn:hover,.kitchen-card.active .k-btn{background:var(--ink);color:#fff}
+.k-btn:hover,
+.kitchen-card.active .k-btn{background:var(--ink);color:#fff}
 .kitchen-card.active{background:#fff;box-shadow:inset 0 0 0 2px var(--purple)}
 
 /* menu section */
@@ -613,28 +620,157 @@ function normaliseRestaurant(r){
     rating:r.rating,
     eta:r.estimatedDeliveryTime||'20–35 min',
     address:r.address||'Cape Town',
-    img:getRestaurantImage(r),
     logo:resolveImageUrl(r.logoUrl)||null,
     logoUrl:resolveImageUrl(r.logoUrl)||null,
+    img:getRestaurantImage(r),
+    featuredImages: [],
+    featuredIndex: 0,
     deliveryFee:Number(r.deliveryFee??DELIVERY_FEE_FALLBACK),
     menu:[]
   };
 }
 
+async function loadFeaturedImage(kitchen) {
+  try {
+    const result = await apiRequest(
+      `/public/restaurants/${encodeURIComponent(kitchen.merchantId)}`
+    );
+
+    const restaurant = result?.restaurant || {};
+
+    kitchen.name = restaurant.restaurantName || kitchen.name;
+    kitchen.cuisine = restaurant.cuisineType || kitchen.cuisine;
+    kitchen.eta = restaurant.estimatedDeliveryTime || kitchen.eta;
+    kitchen.address =
+      restaurant.address ||
+      restaurant.addressLine ||
+      kitchen.address ||
+      'Cape Town';
+
+    kitchen.deliveryFee = Number(
+      restaurant.deliveryFee ??
+      kitchen.deliveryFee ??
+      DELIVERY_FEE_FALLBACK
+    );
+
+    const restaurantLogo =
+      restaurant.logoUrl ||
+      kitchen.logoUrl ||
+      kitchen.logo ||
+      '';
+
+    kitchen.logoUrl = resolveImageUrl(restaurantLogo);
+    kitchen.logo = kitchen.logoUrl || null;
+
+    kitchen.img = getRestaurantImage(restaurant);
+
+    const menuItems = Array.isArray(result?.menuItems)
+      ? result.menuItems
+      : [];
+
+    kitchen.featuredImages = menuItems
+      .map(item => {
+        const image =
+          item?.imageUrl ||
+          item?.image ||
+          item?.photoUrl ||
+          item?.photo ||
+          item?.imagePath ||
+          item?.imageUri ||
+          '';
+
+        return resolveImageUrl(image);
+      })
+      .filter(Boolean);
+
+    kitchen.featuredIndex = 0;
+
+    return kitchen;
+
+  } catch (error) {
+    console.error(
+      `Failed to load featured image for ${kitchen.name}:`,
+      error
+    );
+
+    kitchen.featuredImage = '';
+
+    return kitchen;
+  }
+}
+
 async function loadRestaurants(){
-  const data=await apiRequest('/public/restaurants');
-  kitchens=(Array.isArray(data)?data:[]).map(normaliseRestaurant);
+  const data = await apiRequest('/public/restaurants');
+
+  kitchens = (Array.isArray(data) ? data : [])
+    .map(normaliseRestaurant);
 
   if(!kitchens.length){
-    document.getElementById('kitchenGrid').innerHTML='<p class="order-empty">No kitchens are available right now.</p>';
-    document.getElementById('menuList').innerHTML='<p class="order-empty">No menu items are available.</p>';
+
+    document.getElementById('kitchenGrid').innerHTML =
+      '<p class="order-empty">No kitchens are available right now.</p>';
+
+    document.getElementById('menuList').innerHTML =
+      '<p class="order-empty">No menu items are available.</p>';
+
     return;
   }
 
-  currentKitchen=kitchens[0];
+  currentKitchen = kitchens[0];
+
+  await Promise.all(
+    kitchens.map(kitchen => loadFeaturedImage(kitchen))
+  );
+
   renderKitchenGrid();
   renderChips();
-  await loadRestaurantMenu(currentKitchen.merchantId,false);
+
+  await loadRestaurantMenu(
+    currentKitchen.merchantId,
+    false
+  );
+
+  startFeaturedImageRotation();
+}
+
+function startFeaturedImageRotation(){
+
+  setInterval(() => {
+
+    kitchens.forEach(kitchen => {
+
+      if(!kitchen.featuredImages || kitchen.featuredImages.length <= 1){
+        return;
+      }
+
+      kitchen.featuredIndex =
+        (kitchen.featuredIndex + 1) %
+        kitchen.featuredImages.length;
+
+      const card = document.querySelector(
+        `.kitchen-card[data-id="${kitchen.id}"]`
+      );
+
+      if(!card) return;
+
+      const image = card.querySelector('.k-img-wrap > img');
+
+      if(!image) return;
+
+      image.classList.add('changing');
+
+      setTimeout(() => {
+
+        image.src =
+          kitchen.featuredImages[kitchen.featuredIndex];
+
+        image.classList.remove('changing');
+
+      }, 300);
+
+    });
+
+  }, 5000);
 }
 
 async function loadRestaurantMenu(merchantId,scroll=true){
@@ -694,6 +830,14 @@ async function loadRestaurantMenu(merchantId,scroll=true){
       };
     });
 
+    const featuredItem = kitchen.menu.find(item => {
+      return item.imageUrl || item.img;
+    });
+
+    kitchen.featuredImage = featuredItem
+      ? getMenuImage(featuredItem, kitchen)
+      : kitchen.img;
+
     currentKitchen=kitchen;
 
     renderKitchenGrid();
@@ -718,7 +862,7 @@ function renderKitchenGrid(){
   grid.innerHTML=kitchens.map(k=>`
     <div class="kitchen-card${currentKitchen&&k.id===currentKitchen.id?' active':''}" data-id="${k.id}">
       <div class="k-img-wrap">
-        <img src="${k.img}" alt="${k.cuisine} food from ${k.name}" loading="lazy">
+        <img src="${k.featuredImages?.[0] || k.img}" alt="${k.name} menu item" loading="lazy">
         <div class="k-logo-badge">${k.logo?`<img src="${k.logo}" alt="${k.name} logo">`:''}</div>
       </div>
       <div class="k-top"><div class="k-name">${k.name}</div><div class="k-cuisine">${k.cuisine}</div></div>
