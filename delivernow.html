@@ -361,7 +361,7 @@ button,a,input,textarea,select{max-width:100%}
   <section class="restaurant-page" id="restaurantPage">
     <div class="restaurant-page-inner">
       <div class="restaurant-breadcrumb">
-        <a href="/dn80.html">Deliver Now</a>
+        <a href="/delivernow.html">Deliver Now</a>
         <span>/</span>
         <strong id="restaurantBreadcrumbName">Restaurant</strong>
       </div>
@@ -398,7 +398,7 @@ button,a,input,textarea,select{max-width:100%}
           </div>
           <div class="restaurant-actions">
             <a class="restaurant-menu-btn" href="#menu">View full menu ↓</a>
-            <a class="restaurant-all-btn" href="/dn80.html">← All restaurants</a>
+            <a class="restaurant-all-btn" href="/delivernow.html">← All restaurants</a>
           </div>
         </div>
       </div>
@@ -1005,7 +1005,7 @@ button,a,input,textarea,select{max-width:100%}
         <div class="k-meta">${k.rating?`★ ${Number(k.rating).toFixed(1)}`:'NEW MERCHANT'}</div>
         <div class="k-eta">Driver ETA — ${k.eta}</div>
         <div class="k-addr">${k.address}</div>
-        <a class="k-btn" href="/dn80.html?restaurant=${encodeURIComponent(k.slug||slugifyRestaurantName(k.name))}">View restaurant</a>
+        <a class="k-btn" href="/delivernow.html?restaurant=${encodeURIComponent(k.slug||slugifyRestaurantName(k.name))}">View restaurant</a>
       </div>`).join('');
 
     grid.querySelectorAll('.kitchen-card').forEach(card=>{
@@ -1755,13 +1755,13 @@ button,a,input,textarea,select{max-width:100%}
     if(detailsAddress)detailsAddress.textContent=address;
 
     if(navKitchens){
-      navKitchens.href='/dn80.html';
+      navKitchens.href='/delivernow.html';
       navKitchens.textContent='All restaurants';
     }
 
     const brand=document.querySelector('.brand');
     if(brand){
-      brand.href='/dn80.html';
+      brand.href='/delivernow.html';
     }
 
     const navMenu=document.getElementById('navMenu');
