@@ -8,6 +8,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<script src="https://js.paystack.co/v1/inline.js"></script>
 <style>
 :root{
   --ink:#09090b;--paper:#f5f2ed;--white:#fff;--purple:#d5168c;--purple2:#ff5fb2;
@@ -186,7 +187,7 @@ footer{background:#08080a;color:#888;padding:32px 28px}
 .field label{font-size:12px;font-weight:800}
 .field input,.field textarea,.field select{width:100%;padding:13px 14px;border:1px solid #d8d2d8;border-radius:11px;background:#fff;font:inherit;outline:none}
 .field input:focus,.field textarea:focus,.field select:focus{border-color:var(--purple);box-shadow:0 0 0 3px rgba(213,22,140,.1)}
-.pay-options{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:8px 0 20px}
+.pay-options{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin:8px 0 20px}
 .pay-option{border:1px solid #d8d2d8;border-radius:12px;padding:13px;background:#fff;cursor:pointer;font-weight:800;font-size:13px;text-align:center}
 .pay-option.active{border-color:var(--purple);box-shadow:inset 0 0 0 1.5px var(--purple);color:var(--purple)}
 .checkout-total{display:flex;justify-content:space-between;font-size:20px;font-weight:900;border-top:1px solid var(--ink);padding-top:15px;margin-top:12px}
@@ -567,21 +568,19 @@ button,a,input,textarea,select{max-width:100%}
         </div>
         <label style="font-size:12px;font-weight:800">Payment method</label>
         <div class="pay-options">
-          <button class="pay-option active" data-pay="eft">EFT</button>
-          <button class="pay-option" data-pay="card_delivery">Card on delivery</button>
+          <button class="pay-option active" data-pay="paystack">Card payment</button>
           <button class="pay-option" data-pay="cash">Cash on delivery</button>
         </div>
         <div class="checkout-total"><span>Total</span><span id="checkoutTotal">R0</span></div>
-        <div id="eftDetails" class="payment-box">
-          <strong>EFT banking details</strong>
-          <div>Account name: <b>Nice Nice Global</b></div>
-          <div>Bank: <b>FNB</b></div>
-          <div>Account number: <b>63187826252</b></div>
-          <div>Reference: <b id="eftReference">Order number generated when you confirm</b></div>
-          <div class="small-note" style="margin:8px 0 0">Use your Order No as the EFT reference. Your order is confirmed once payment is received.</div>
+        <div id="paystackDetails" class="payment-box">
+          <strong>Secure online payment</strong>
+          <div>Pay securely by card using Paystack or select a saved card.</div>
+          <div id="savedCardsList" style="margin-top:12px"></div>
+          <button type="button" class="secondary-btn" id="addCardBtn" style="margin-top:12px;width:100%">Add new card</button>
+          <div class="small-note" style="margin:8px 0 0">Your payment will be verified before the order is confirmed.</div>
         </div>
-        <button class="primary-btn" id="payBtn">Confirm EFT order</button>
-        <div class="small-note" id="paymentNote">Make an EFT using the banking details above. Your unique Order No will be generated when you confirm the order.</div>
+        <button class="primary-btn" id="payBtn">Pay with Paystack</button>
+        <div class="small-note" id="paymentNote">Complete your payment securely with Paystack to place your order.</div>
       </div>
     </div>
   </div>
@@ -645,7 +644,9 @@ button,a,input,textarea,select{max-width:100%}
   let kitchens=[];
   let currentKitchen=null;
   let cart=[];
-  let selectedPayment='eft';
+  let selectedPayment='paystack';
+  let savedCards=[];
+  let selectedCardId='';
   let pendingOrderId='';
   let lastOrder=null;
   let currentUser=null;
@@ -672,6 +673,10 @@ button,a,input,textarea,select{max-width:100%}
     document.documentElement.classList.add('restaurant-page-mode');
   }else{
     document.documentElement.classList.add('home-page-mode');
+  }
+
+  function escapeHtml(value){
+    return String(value??'').replace(/[&<>"']/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
   }
 
   async function apiRequest(endpoint,options={}){
@@ -1313,24 +1318,18 @@ button,a,input,textarea,select{max-width:100%}
       btn.classList.add('active');
       selectedPayment=btn.dataset.pay;
 
-      const eft=selectedPayment==='eft';
+      const paystack=selectedPayment==='paystack';
 
-      document.getElementById('eftDetails').style.display=
-        eft?'block':'none';
+      document.getElementById('paystackDetails').style.display=
+        paystack?'block':'none';
 
       document.getElementById('payBtn').textContent=
-        eft
-          ?'Confirm EFT order'
-          :selectedPayment==='card_delivery'
-            ?'Confirm card on delivery'
-            :'Confirm cash order';
+        paystack?'Pay with card':'Confirm cash order';
 
       document.getElementById('paymentNote').textContent=
-        eft
-          ?'EFT is displayed for reference. Order placement through the current API supports Card or Cash only.'
-          :selectedPayment==='card_delivery'
-            ?'Card-on-delivery is displayed in the existing checkout. The current API supports Card or Cash payment methods.'
-            :'Pay your driver in cash when your order arrives.';
+        paystack
+          ?'Complete your payment securely with Paystack to place your order.'
+          :'Pay your driver in cash when your order arrives.';
     });
   });
 
@@ -1350,13 +1349,91 @@ button,a,input,textarea,select{max-width:100%}
     document.getElementById('checkoutTotal').textContent=
       formatMoney(cartTotal());
 
-    document.getElementById('eftReference').textContent=
-      'Generated after order creation';
 
     openModal('checkoutModal');
+    loadSavedCards();
   }
 
   document.getElementById('confirmBtn').addEventListener('click',openCheckout);
+
+  async function loadSavedCards(){
+    const list=document.getElementById('savedCardsList');
+    if(!list)return;
+    list.innerHTML='<div class="small-note">Loading saved cards…</div>';
+    try{
+      if(!currentUser?.id){
+        savedCards=[];
+        list.innerHTML='<div class="small-note">Sign in to use saved cards.</div>';
+        return;
+      }
+      savedCards=await apiRequest(`/payments/list-cards/${encodeURIComponent(currentUser.id)}`);
+      if(!Array.isArray(savedCards))savedCards=[];
+      if(!savedCards.length){
+        selectedCardId='';
+        list.innerHTML='<div class="small-note">No saved cards yet. Add a card or pay with a new card.</div>';
+        return;
+      }
+      if(!savedCards.some(card=>String(card.id)===String(selectedCardId)))selectedCardId=String(savedCards[0].id);
+      list.innerHTML=savedCards.map(card=>`<label style="display:flex;align-items:center;gap:10px;padding:10px;border:1px solid var(--line);border-radius:10px;margin-top:8px;background:#fff;cursor:pointer"><input type="radio" name="savedPaymentCard" value="${String(card.id).replace(/[^a-zA-Z0-9-]/g,'')}" ${String(card.id)===String(selectedCardId)?'checked':''} style="accent-color:var(--purple)"><span><strong>${escapeHtml(card.cardType||'Card')}</strong> ···· ${escapeHtml(card.last4||'')}</span></label>`).join('');
+      list.querySelectorAll('input[name="savedPaymentCard"]').forEach(input=>input.addEventListener('change',()=>{selectedCardId=input.value;}));
+    }catch(error){
+      savedCards=[];
+      list.innerHTML='<div class="small-note">Saved cards could not be loaded. You can still pay with a new card.</div>';
+    }
+  }
+
+  document.getElementById('addCardBtn').addEventListener('click',async()=>{
+    const btn=document.getElementById('addCardBtn');
+    const original=btn.textContent;
+    try{
+      const email=String(currentUser?.email||currentUser?.userName||'').trim();
+      if(!currentUser?.id)throw new Error('Please sign in again to add a card.');
+      if(!email||!email.includes('@'))throw new Error('A valid email address is required to add a card.');
+      if(!window.PaystackPop)throw new Error('Paystack could not be loaded. Please refresh the page and try again.');
+      btn.disabled=true;
+      btn.textContent='Opening Paystack…';
+      const transaction=await apiRequest(`/payments/init-transaction?${new URLSearchParams({email,amount:'100'})}`);
+      if(!transaction?.publicKey||!transaction?.reference)throw new Error('Paystack could not initialise card setup.');
+      await new Promise((resolve,reject)=>{
+        let completed=false;
+        const handler=window.PaystackPop.setup({
+          key:transaction.publicKey,
+          email,
+          amount:100,
+          currency:'ZAR',
+          channels:['card'],
+          ref:transaction.reference,
+          callback:function(response){
+            if(completed)return;
+            completed=true;
+            (async()=>{
+              const verification=await apiRequest(`/payments/verify?${new URLSearchParams({reference:response.reference})}`);
+              const paymentData=verification?.data;
+              if(verification?.status!==true||paymentData?.status!=='success')throw new Error('Card verification failed.');
+              const authorization=paymentData.authorization||{};
+              if(!authorization.authorization_code)throw new Error('Paystack did not return a reusable card authorization.');
+              if(authorization.reusable!==true)throw new Error('This card cannot be saved for future payments. Please use another card.');
+              await apiRequest('/payments/save-card',{
+                method:'POST',
+                body:JSON.stringify({userId:currentUser.id,email,authCode:authorization.authorization_code,last4:authorization.last4,cardType:authorization.card_type,bank:authorization.bank,reusable:authorization.reusable})
+              });
+              await loadSavedCards();
+              alert('Card saved successfully. You can select it at checkout.');
+            })().then(resolve).catch(reject);
+          },
+          onClose:function(){
+            if(!completed){completed=true;reject(new Error('Card setup was cancelled.'));}
+          }
+        });
+        handler.openIframe();
+      });
+    }catch(error){
+      alert(error.message||'Could not save card. Please try again.');
+    }finally{
+      btn.disabled=false;
+      btn.textContent=original;
+    }
+  });
 
   function setTrackingStatus(status){
     const value=String(status??'').toLowerCase();
@@ -1536,17 +1613,9 @@ button,a,input,textarea,select{max-width:100%}
       return;
     }
 
-    if(selectedPayment==='eft'){
-      alert('EFT is not supported by the current order API. Please select Cash on delivery or Card.');
-      return;
-    }
-
     const normalizedAddress=address.toLowerCase().trim();
-
     const addressRecord=
-      customerAddresses.find(a=>
-        `${a.addressLine||''}, ${a.city||''}`.toLowerCase().trim()===normalizedAddress
-      )||
+      customerAddresses.find(a=>`${a.addressLine||''}, ${a.city||''}`.toLowerCase().trim()===normalizedAddress)||
       customerAddresses.find(a=>a.isDefault)||
       customerAddresses[0];
 
@@ -1555,22 +1624,16 @@ button,a,input,textarea,select{max-width:100%}
       return;
     }
 
-    const paymentMethod=
-      selectedPayment==='card_delivery'
-        ?'Card'
-        :'Cash';
+    if(selectedPayment==='paystack'&&savedCards.length&&!selectedCardId){
+      alert('Please select a saved card or add a new card.');
+      return;
+    }
 
     const subtotal=cartSubtotal();
-    const deliveryFee=Number(
-      currentKitchen.deliveryFee??DELIVERY_FEE_FALLBACK
-    );
+    const deliveryFee=Number(currentKitchen.deliveryFee??DELIVERY_FEE_FALLBACK);
     const discount=0;
-    const total=
-      subtotal-
-      discount+
-      deliveryFee+
-      PLATFORM_FEE;
-
+    const total=subtotal-discount+deliveryFee+PLATFORM_FEE;
+    const paymentMethod=selectedPayment==='paystack'?'Card':'Cash';
     const payload={
       merchantId:currentKitchen.merchantId,
       customerName:name,
@@ -1583,65 +1646,102 @@ button,a,input,textarea,select{max-width:100%}
       deliveryFee,
       platformFee:PLATFORM_FEE,
       total,
-      items:cart.map(item=>({
-        menuItemId:item.menuItemId,
-        quantity:item.qty,
-        price:item.price
-      }))
+      items:cart.map(item=>({menuItemId:item.menuItemId,quantity:item.qty,price:item.price}))
     };
 
     const btn=document.getElementById('payBtn');
     const originalText=btn.textContent;
-
     btn.disabled=true;
-    btn.textContent='Creating order…';
+    btn.textContent=selectedPayment==='paystack'?'Processing card payment…':'Creating order…';
 
     try{
-      const result=await apiRequest('/orders/create',{
-        method:'POST',
-        body:JSON.stringify(payload)
-      });
-
-      lastOrder=result;
-      pendingOrderId=result.orderId;
-
-      document.getElementById('eftReference').textContent=
-        result.orderId;
-
-      localStorage.setItem(
-        'dn_last_order',
-        JSON.stringify(result)
-      );
-
-      if(paymentMethod==='Cash'){
-        btn.textContent='Confirming payment…';
-
-        try{
-          await apiRequest('/payments/cash-order',{
-            method:'POST',
-            body:JSON.stringify({
-              userId:currentUser.id,
-              orderId:result.orderId
-            })
-          });
-        }catch{}
+      const email=String(currentUser.email||currentUser.userName||'').trim();
+      if(selectedPayment==='paystack'&&(!email||!email.includes('@'))){
+        throw new Error('A valid email address is required for Paystack. Please sign in with your email address.');
       }
 
-      closeModal('checkoutModal');
-
-      document.getElementById('confirmNote').textContent=
-        `Order ${result.orderId} created successfully. ${result.trackingMessage||''}`.trim();
-
-      cart=[];
-
-      renderOrder();
-
-      await startTracking(result.orderId);
+      if(selectedPayment==='paystack'&&selectedCardId){
+        const result=await apiRequest('/orders/create',{method:'POST',body:JSON.stringify(payload)});
+        await apiRequest('/payments/charge-order',{
+          method:'POST',
+          body:JSON.stringify({userId:currentUser.id,orderId:result.orderId,cardId:selectedCardId,email,currency:'ZAR'})
+        });
+        lastOrder=result;
+        pendingOrderId=result.orderId;
+        const orderToStore={...result,paymentMethod:'Card',paymentStatus:'success'};
+        localStorage.setItem('dn_last_order',JSON.stringify(orderToStore));
+        closeModal('checkoutModal');
+        document.getElementById('confirmNote').textContent=`Payment completed and order ${result.orderId} created successfully. ${result.trackingMessage||''}`.trim();
+        cart=[];
+        renderOrder();
+        await startTracking(result.orderId);
+      }else if(selectedPayment==='paystack'){
+        if(!window.PaystackPop)throw new Error('Paystack could not be loaded. Please refresh the page and try again.');
+        const amountInCents=Math.round(total*100);
+        const transaction=await apiRequest(`/payments/init-transaction?${new URLSearchParams({email,amount:String(amountInCents)})}`);
+        if(!transaction?.publicKey||!transaction?.reference)throw new Error('Paystack could not initialise your payment. Please try again.');
+        btn.textContent='Waiting for payment…';
+        await new Promise((resolve,reject)=>{
+          let completed=false;
+          const handler=window.PaystackPop.setup({
+            key:transaction.publicKey,
+            email,
+            amount:amountInCents,
+            currency:'ZAR',
+            channels:['card'],
+            ref:transaction.reference,
+            callback:function(response){
+              if(completed)return;
+              completed=true;
+              (async()=>{
+                btn.textContent='Verifying payment…';
+                const verification=await apiRequest(`/payments/verify?${new URLSearchParams({reference:response.reference})}`);
+                const paymentData=verification?.data;
+                if(verification?.status!==true||paymentData?.status!=='success')throw new Error('Paystack could not verify your payment. No order has been confirmed.');
+                if(Number(paymentData.amount)!==amountInCents||String(paymentData.currency||'').toUpperCase()!=='ZAR')throw new Error('The verified payment amount does not match your order. Please contact support before trying again.');
+                const authorization=paymentData.authorization||{};
+                if(authorization.authorization_code&&authorization.reusable===true){
+                  try{
+                    await apiRequest('/payments/save-card',{
+                      method:'POST',
+                      body:JSON.stringify({userId:currentUser.id,email,authCode:authorization.authorization_code,last4:authorization.last4,cardType:authorization.card_type,bank:authorization.bank,reusable:authorization.reusable})
+                    });
+                  }catch{}
+                }
+                btn.textContent='Creating order…';
+                const result=await apiRequest('/orders/create',{method:'POST',body:JSON.stringify(payload)});
+                lastOrder=result;
+                pendingOrderId=result.orderId;
+                const orderToStore={...result,paymentReference:response.reference,paymentMethod:'Paystack',paymentStatus:'success'};
+                localStorage.setItem('dn_last_order',JSON.stringify(orderToStore));
+                closeModal('checkoutModal');
+                document.getElementById('confirmNote').textContent=`Payment verified and order ${result.orderId} created successfully. ${result.trackingMessage||''}`.trim();
+                cart=[];
+                renderOrder();
+                await startTracking(result.orderId);
+              })().then(resolve).catch(reject);
+            },
+            onClose:()=>{
+              if(!completed){completed=true;reject(new Error('Payment was cancelled. Your order has not been confirmed.'));}
+            }
+          });
+          handler.openIframe();
+        });
+      }else{
+        const result=await apiRequest('/orders/create',{method:'POST',body:JSON.stringify(payload)});
+        lastOrder=result;
+        pendingOrderId=result.orderId;
+        localStorage.setItem('dn_last_order',JSON.stringify(result));
+        btn.textContent='Confirming cash order…';
+        await apiRequest('/payments/cash-order',{method:'POST',body:JSON.stringify({userId:currentUser.id,orderId:result.orderId})});
+        closeModal('checkoutModal');
+        document.getElementById('confirmNote').textContent=`Order ${result.orderId} created successfully. ${result.trackingMessage||''}`.trim();
+        cart=[];
+        renderOrder();
+        await startTracking(result.orderId);
+      }
     }catch(error){
-      alert(
-        error.message||
-        'We could not create your order. Please try again.'
-      );
+      alert(error.message||'We could not complete your payment or create the order. Please try again.');
     }finally{
       btn.disabled=false;
       btn.textContent=originalText;
