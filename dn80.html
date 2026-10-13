@@ -361,7 +361,7 @@ button,a,input,textarea,select{max-width:100%}
   <section class="restaurant-page" id="restaurantPage">
     <div class="restaurant-page-inner">
       <div class="restaurant-breadcrumb">
-        <a href="dn80.html">Deliver Now</a>
+        <a href="/dn80.html">Deliver Now</a>
         <span>/</span>
         <strong id="restaurantBreadcrumbName">Restaurant</strong>
       </div>
@@ -398,7 +398,7 @@ button,a,input,textarea,select{max-width:100%}
           </div>
           <div class="restaurant-actions">
             <a class="restaurant-menu-btn" href="#menu">View full menu ↓</a>
-            <a class="restaurant-all-btn" href="dn80.html">← All restaurants</a>
+            <a class="restaurant-all-btn" href="/dn80.html">← All restaurants</a>
           </div>
         </div>
       </div>
@@ -651,7 +651,23 @@ button,a,input,textarea,select{max-width:100%}
   let currentUser=null;
   let customerAddresses=[];
   let trackingTimer=null;
-  const restaurantPageId=new URLSearchParams(location.search).get('restaurant');
+  function slugifyRestaurantName(name){
+    return String(name||'restaurant')
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g,'')
+      .trim()
+      .replace(/[^a-z0-9\s-]/g,'')
+      .replace(/\s+/g,'-')
+      .replace(/-+/g,'-')
+      .replace(/^-|-$/g,'')||'restaurant';
+  }
+
+  const restaurantQueryValue=new URLSearchParams(location.search).get('restaurant')||'';
+  const restaurantIdPattern=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  const restaurantPageSlug=location.pathname.match(/^\/restaurants\/([^/]+)\/?$/i)?.[1]||(restaurantQueryValue&&!restaurantIdPattern.test(restaurantQueryValue)?restaurantQueryValue:'');
+  const legacyRestaurantId=restaurantIdPattern.test(restaurantQueryValue)?restaurantQueryValue:'';
+  const restaurantPageId=legacyRestaurantId||restaurantPageSlug||'';
   if(restaurantPageId){
     document.documentElement.classList.add('restaurant-page-mode');
   }else{
@@ -714,6 +730,7 @@ button,a,input,textarea,select{max-width:100%}
     return {
       id:r.merchantId,
       merchantId:r.merchantId,
+      slug:r.slug||slugifyRestaurantName(r.restaurantName||'Restaurant'),
       name:r.restaurantName||'Restaurant',
       cuisine:r.cuisineType||'Food',
       rating:r.rating,
@@ -801,17 +818,30 @@ button,a,input,textarea,select{max-width:100%}
   async function loadRestaurants(){
     if(restaurantPageId){
       let result=null;
-      try{
-        if(currentUser){
-          result=await apiRequest(`/customer/restaurant/${encodeURIComponent(restaurantPageId)}`);
+      if(restaurantPageSlug){
+        const restaurantList=await apiRequest('/public/restaurants');
+        const availableRestaurants=Array.isArray(restaurantList)?restaurantList:Array.isArray(restaurantList?.restaurants)?restaurantList.restaurants:Array.isArray(restaurantList?.data)?restaurantList.data:[];
+        const matchedRestaurant=availableRestaurants.find(item=>slugifyRestaurantName(item?.restaurantName||item?.name)===decodeURIComponent(restaurantPageSlug).toLowerCase()||String(item?.slug||'').toLowerCase()===decodeURIComponent(restaurantPageSlug).toLowerCase());
+        if(!matchedRestaurant){
+          document.getElementById('kitchenGrid').innerHTML='<p class="order-empty">This restaurant could not be found.</p>';
+          document.getElementById('menuList').innerHTML='<p class="order-empty">This restaurant could not be found.</p>';
+          return;
         }
-      }catch{}
-      if(!result){
-        result=await apiRequest(`/public/restaurants/${encodeURIComponent(restaurantPageId)}`);
+        const matchedMerchantId=matchedRestaurant.merchantId||matchedRestaurant.id;
+        result=await apiRequest(`/public/restaurants/${encodeURIComponent(matchedMerchantId)}`);
+      }else{
+        try{
+          if(currentUser){
+            result=await apiRequest(`/customer/restaurant/${encodeURIComponent(restaurantPageId)}`);
+          }
+        }catch{}
+        if(!result){
+          result=await apiRequest(`/public/restaurants/${encodeURIComponent(restaurantPageId)}`);
+        }
       }
 
-      const restaurant=result?.restaurant||{};
-      const merchantId=restaurant.merchantId||restaurant.id||restaurantPageId;
+      const restaurant=result?.restaurant||result?.data?.restaurant||result?.data||{};
+      const merchantId=restaurant.merchantId||restaurant.id||result?.merchantId||restaurantPageId;
       const kitchen={
         id:merchantId,
         merchantId,
@@ -975,7 +1005,7 @@ button,a,input,textarea,select{max-width:100%}
         <div class="k-meta">${k.rating?`★ ${Number(k.rating).toFixed(1)}`:'NEW MERCHANT'}</div>
         <div class="k-eta">Driver ETA — ${k.eta}</div>
         <div class="k-addr">${k.address}</div>
-        <a class="k-btn" href="?restaurant=${encodeURIComponent(k.merchantId)}">View restaurant</a>
+        <a class="k-btn" href="/dn80.html?restaurant=${encodeURIComponent(k.slug||slugifyRestaurantName(k.name))}">View restaurant</a>
       </div>`).join('');
 
     grid.querySelectorAll('.kitchen-card').forEach(card=>{
@@ -1725,13 +1755,13 @@ button,a,input,textarea,select{max-width:100%}
     if(detailsAddress)detailsAddress.textContent=address;
 
     if(navKitchens){
-      navKitchens.href='dn80.html';
+      navKitchens.href='/dn80.html';
       navKitchens.textContent='All restaurants';
     }
 
     const brand=document.querySelector('.brand');
     if(brand){
-      brand.href='dn80.html';
+      brand.href='/dn80.html';
     }
 
     const navMenu=document.getElementById('navMenu');
