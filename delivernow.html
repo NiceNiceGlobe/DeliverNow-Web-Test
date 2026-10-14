@@ -576,7 +576,7 @@ button,a,input,textarea,select{max-width:100%}
           <strong>Secure online payment</strong>
           <div>Pay securely by card using Paystack or select a saved card.</div>
           <div id="savedCardsList" style="margin-top:12px"></div>
-          <button type="button" class="secondary-btn" id="addCardBtn" style="margin-top:12px;width:100%">Add new card</button>
+          <button type="button" id="otherPaystackMethodsBtn" class="text-btn" style="display:block;margin-top:12px;padding:10px 12px;border:1px solid var(--line);border-radius:10px;width:100%;text-align:center">Use another payment method</button>
           <div class="small-note" style="margin:8px 0 0">Your payment will be verified before the order is confirmed.</div>
         </div>
         <button class="primary-btn" id="payBtn">Pay with Paystack</button>
@@ -1370,7 +1370,7 @@ button,a,input,textarea,select{max-width:100%}
       if(!Array.isArray(savedCards))savedCards=[];
       if(!savedCards.length){
         selectedCardId='';
-        list.innerHTML='<div class="small-note">No saved cards yet. Add a card or pay with a new card.</div>';
+        list.innerHTML='<div class="small-note">No saved cards yet. You can pay by card at checkout.</div>';
         return;
       }
       if(!savedCards.some(card=>String(card.id)===String(selectedCardId)))selectedCardId=String(savedCards[0].id);
@@ -1378,61 +1378,9 @@ button,a,input,textarea,select{max-width:100%}
       list.querySelectorAll('input[name="savedPaymentCard"]').forEach(input=>input.addEventListener('change',()=>{selectedCardId=input.value;}));
     }catch(error){
       savedCards=[];
-      list.innerHTML='<div class="small-note">Saved cards could not be loaded. You can still pay with a new card.</div>';
+      list.innerHTML='<div class="small-note">Saved cards could not be loaded. You can still pay by card at checkout.</div>';
     }
   }
-
-  document.getElementById('addCardBtn').addEventListener('click',async()=>{
-    const btn=document.getElementById('addCardBtn');
-    const original=btn.textContent;
-    try{
-      const email=String(currentUser?.email||currentUser?.userName||'').trim();
-      if(!currentUser?.id)throw new Error('Please sign in again to add a card.');
-      if(!email||!email.includes('@'))throw new Error('A valid email address is required to add a card.');
-      if(!window.PaystackPop)throw new Error('Paystack could not be loaded. Please refresh the page and try again.');
-      btn.disabled=true;
-      btn.textContent='Opening Paystack…';
-      const transaction=await apiRequest(`/payments/init-transaction?${new URLSearchParams({email,amount:'100'})}`);
-      if(!transaction?.publicKey||!transaction?.reference)throw new Error('Paystack could not initialise card setup.');
-      await new Promise((resolve,reject)=>{
-        let completed=false;
-        const handler=window.PaystackPop.setup({
-          key:transaction.publicKey,
-          email,
-          amount:100,
-          currency:'ZAR',
-          ref:transaction.reference,
-          callback:function(response){
-            if(completed)return;
-            completed=true;
-            (async()=>{
-              const verification=await apiRequest(`/payments/verify?${new URLSearchParams({reference:response.reference})}`);
-              const paymentData=verification?.data;
-              if(verification?.status!==true||paymentData?.status!=='success')throw new Error('Card verification failed.');
-              const authorization=paymentData.authorization||{};
-              if(!authorization.authorization_code)throw new Error('Paystack did not return a reusable card authorization.');
-              if(authorization.reusable!==true)throw new Error('This card cannot be saved for future payments. Please use another card.');
-              await apiRequest('/payments/save-card',{
-                method:'POST',
-                body:JSON.stringify({userId:currentUser.id,email,authCode:authorization.authorization_code,last4:authorization.last4,cardType:authorization.card_type,bank:authorization.bank,reusable:authorization.reusable})
-              });
-              await loadSavedCards();
-              alert('Card saved successfully. You can select it at checkout.');
-            })().then(resolve).catch(reject);
-          },
-          onClose:function(){
-            if(!completed){completed=true;reject(new Error('Card setup was cancelled.'));}
-          }
-        });
-        handler.openIframe();
-      });
-    }catch(error){
-      alert(error.message||'Could not save card. Please try again.');
-    }finally{
-      btn.disabled=false;
-      btn.textContent=original;
-    }
-  });
 
   function setTrackingStatus(status){
     const value=String(status??'').toLowerCase();
@@ -1594,6 +1542,12 @@ button,a,input,textarea,select{max-width:100%}
     startTracking();
   });
 
+  document.getElementById('otherPaystackMethodsBtn').addEventListener('click',()=>{
+    selectedCardId='';
+    document.querySelectorAll('input[name="savedPaymentCard"]').forEach(input=>input.checked=false);
+    document.getElementById('payBtn').click();
+  });
+
   document.getElementById('payBtn').addEventListener('click',async()=>{
     if(!currentUser){
       closeModal('checkoutModal');
@@ -1620,11 +1574,6 @@ button,a,input,textarea,select{max-width:100%}
 
     if(!addressRecord?.id){
       alert('Please sign in and select a saved delivery address before placing an order.');
-      return;
-    }
-
-    if(selectedPayment==='paystack'&&savedCards.length&&!selectedCardId){
-      alert('Please select a saved card or add a new card.');
       return;
     }
 
