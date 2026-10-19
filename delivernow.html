@@ -679,22 +679,63 @@ button,a,input,textarea,select{max-width:100%}
     return String(value??'').replace(/[&<>"']/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
   }
 
+  const restaurantRequestCache=new Map();
+  const restaurantRequestPromises=new Map();
+  const RESTAURANT_CACHE_TTL=2*60*1000;
+
+  function readRestaurantCache(key){
+    const memory=restaurantRequestCache.get(key);
+    if(memory&&Date.now()-memory.timestamp<RESTAURANT_CACHE_TTL)return memory.data;
+    try{
+      const stored=localStorage.getItem(key);
+      if(!stored)return null;
+      const parsed=JSON.parse(stored);
+      if(!parsed||Date.now()-parsed.timestamp>=RESTAURANT_CACHE_TTL)return null;
+      restaurantRequestCache.set(key,parsed);
+      return parsed.data;
+    }catch{return null}
+  }
+
+  function writeRestaurantCache(key,data){
+    const entry={timestamp:Date.now(),data};
+    restaurantRequestCache.set(key,entry);
+    try{localStorage.setItem(key,JSON.stringify(entry))}catch{}
+  }
+
   async function apiRequest(endpoint,options={}){
-    const response=await fetch(`${API_URL}${endpoint}`,{
-      ...options,
-      credentials:'include',
-      headers:{'Content-Type':'application/json',...(options.headers||{})}
-    });
-    if(!response.ok){
-      let message='Request failed';
-      try{message=await response.text()||message}catch{}
-      throw new Error(message);
+    const method=String(options.method||'GET').toUpperCase();
+    const cacheable=method==='GET'&&(endpoint==='/public/restaurants'||/^\/public\/restaurants\/[^?]+$/.test(endpoint));
+    const cacheKey=`dn_restaurant_cache_${endpoint}`;
+    if(cacheable){
+      const cached=readRestaurantCache(cacheKey);
+      if(cached!==null)return cached;
+      if(restaurantRequestPromises.has(cacheKey))return restaurantRequestPromises.get(cacheKey);
     }
-    if(response.status===204)return null;
-    const contentType=response.headers.get('content-type')||'';
-    if(contentType.includes('application/json'))return response.json();
-    const text=await response.text();
-    try{return JSON.parse(text)}catch{return text}
+    const request=(async()=>{
+      const response=await fetch(`${API_URL}${endpoint}`,{
+        ...options,
+        credentials:'include',
+        headers:{'Content-Type':'application/json',...(options.headers||{})}
+      });
+      if(!response.ok){
+        let message='Request failed';
+        try{message=await response.text()||message}catch{}
+        throw new Error(message);
+      }
+      if(response.status===204)return null;
+      const contentType=response.headers.get('content-type')||'';
+      let data;
+      if(contentType.includes('application/json'))data=await response.json();
+      else{
+        const text=await response.text();
+        try{data=JSON.parse(text)}catch{data=text}
+      }
+      if(cacheable)writeRestaurantCache(cacheKey,data);
+      return data;
+    })();
+    if(cacheable)restaurantRequestPromises.set(cacheKey,request);
+    try{return await request}
+    finally{if(cacheable)restaurantRequestPromises.delete(cacheKey)}
   }
 
   function formatMoney(value){
@@ -892,7 +933,15 @@ button,a,input,textarea,select{max-width:100%}
       return;
     }
 
-    const data=await apiRequest('/public/restaurants');
+    const cacheKey='dn_restaurant_cache_/public/restaurants';
+    let data=readRestaurantCache(cacheKey);
+    const hasCachedRestaurants=Array.isArray(data)?data.length>0:false;
+
+    if(!hasCachedRestaurants){
+      data=await apiRequest('/public/restaurants');
+      data=Array.isArray(data)?data:Array.isArray(data?.restaurants)?data.restaurants:Array.isArray(data?.data)?data.data:[];
+    }
+
     kitchens=(Array.isArray(data)?data:[]).map(normaliseRestaurant);
 
     if(!kitchens.length){
@@ -901,11 +950,32 @@ button,a,input,textarea,select{max-width:100%}
       return;
     }
 
-    await Promise.all(kitchens.map(kitchen=>loadFeaturedImage(kitchen)));
     currentKitchen=kitchens[0];
     renderKitchenGrid();
     renderChips();
-    await loadRestaurantMenu(currentKitchen.merchantId,false);
+    loadRestaurantMenu(currentKitchen.merchantId,false);
+    Promise.all(kitchens.map(kitchen=>loadFeaturedImage(kitchen)))
+      .then(()=>renderKitchenGrid())
+      .catch(()=>{});
+
+    if(hasCachedRestaurants){
+      fetch(`${API_URL}/public/restaurants`,{credentials:'include',headers:{'Content-Type':'application/json'}})
+        .then(async response=>{
+          if(!response.ok)throw new Error('Could not refresh restaurants');
+          const contentType=response.headers.get('content-type')||'';
+          const freshData=contentType.includes('application/json')?await response.json():JSON.parse(await response.text());
+          const restaurants=Array.isArray(freshData)?freshData:Array.isArray(freshData?.restaurants)?freshData.restaurants:Array.isArray(freshData?.data)?freshData.data:[];
+          writeRestaurantCache(cacheKey,restaurants);
+          const selectedId=currentKitchen?.merchantId;
+          kitchens=restaurants.map(normaliseRestaurant);
+          currentKitchen=kitchens.find(k=>String(k.merchantId)===String(selectedId))||kitchens[0]||null;
+          renderKitchenGrid();
+          renderChips();
+          return Promise.all(kitchens.map(kitchen=>loadFeaturedImage(kitchen)))
+            .then(()=>renderKitchenGrid());
+        })
+        .catch(()=>{});
+    }
   }
 
   async function loadRestaurantMenu(merchantId,scroll=true){
@@ -1373,9 +1443,10 @@ button,a,input,textarea,select{max-width:100%}
         list.innerHTML='<div class="small-note">No saved cards yet. You can pay by card at checkout.</div>';
         return;
       }
-      if(!savedCards.some(card=>String(card.id)===String(selectedCardId)))selectedCardId=String(savedCards[0].id);
-      list.innerHTML=savedCards.map(card=>`<label style="display:flex;align-items:center;gap:10px;padding:10px;border:1px solid var(--line);border-radius:10px;margin-top:8px;background:#fff;cursor:pointer"><input type="radio" name="savedPaymentCard" value="${String(card.id).replace(/[^a-zA-Z0-9-]/g,'')}" ${String(card.id)===String(selectedCardId)?'checked':''} style="accent-color:var(--purple)"><span><strong>${escapeHtml(card.cardType||'Card')}</strong> ···· ${escapeHtml(card.last4||'')}</span></label>`).join('');
-      list.querySelectorAll('input[name="savedPaymentCard"]').forEach(input=>input.addEventListener('change',()=>{selectedCardId=input.value;}));
+      const selectedSavedCard=savedCards.find(card=>String(card.id).toLowerCase()===String(selectedCardId).toLowerCase());
+      if(!selectedSavedCard)selectedCardId=String(savedCards[0].id);
+      list.innerHTML=savedCards.map((card,index)=>`<label style="display:flex;align-items:center;gap:10px;padding:10px;border:1px solid var(--line);border-radius:10px;margin-top:8px;background:#fff;cursor:pointer"><input type="radio" name="savedPaymentCard" value="${index}" ${String(card.id).toLowerCase()===String(selectedCardId).toLowerCase()?'checked':''} style="accent-color:var(--purple)"><span><strong>${escapeHtml(card.cardType||'Card')}</strong> ···· ${escapeHtml(card.last4||'')}</span></label>`).join('');
+      list.querySelectorAll('input[name="savedPaymentCard"]').forEach(input=>input.addEventListener('change',()=>{const card=savedCards[Number(input.value)];selectedCardId=card?String(card.id):'';}));
     }catch(error){
       savedCards=[];
       list.innerHTML='<div class="small-note">Saved cards could not be loaded. You can still pay by card at checkout.</div>';
@@ -1609,11 +1680,23 @@ button,a,input,textarea,select{max-width:100%}
       }
 
       if(selectedPayment==='paystack'&&selectedCardId){
+        const selectedSavedCard=savedCards.find(card=>String(card.id).toLowerCase()===String(selectedCardId).toLowerCase());
+        if(!selectedSavedCard?.id)throw new Error('Please select a valid saved card or choose another payment method.');
+        if(selectedSavedCard.reusable===false)throw new Error('This saved card cannot be charged again. Please choose another payment method.');
+        const savedCardEmail=String(selectedSavedCard.email||email).trim();
+        if(!savedCardEmail||!savedCardEmail.includes('@'))throw new Error('A valid email address is required for this saved card. Please choose another payment method.');
         const result=await apiRequest('/orders/create',{method:'POST',body:JSON.stringify(payload)});
-        await apiRequest('/payments/charge-order',{
-          method:'POST',
-          body:JSON.stringify({userId:currentUser.id,orderId:result.orderId,cardId:selectedCardId,email,currency:'ZAR'})
-        });
+        try{
+          await apiRequest('/payments/charge-order',{
+            method:'POST',
+            body:JSON.stringify({userId:currentUser.id,orderId:result.orderId,cardId:String(selectedSavedCard.id),email:savedCardEmail,currency:'ZAR'})
+          });
+        }catch(paymentError){
+          lastOrder=result;
+          pendingOrderId=result.orderId;
+          localStorage.setItem('dn_last_order',JSON.stringify({...result,paymentMethod:'Card',paymentStatus:'failed'}));
+          throw new Error(`${paymentError.message||'The saved card could not be charged.'} Order ${result.orderId} was created but payment was not confirmed. Do not submit the order again; choose another payment method or contact support.`);
+        }
         lastOrder=result;
         pendingOrderId=result.orderId;
         const orderToStore={...result,paymentMethod:'Card',paymentStatus:'success'};
