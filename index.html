@@ -681,7 +681,7 @@ button,a,input,textarea,select{max-width:100%}
 
   const restaurantRequestCache=new Map();
   const restaurantRequestPromises=new Map();
-  const RESTAURANT_CACHE_TTL=2*60*1000;
+  const RESTAURANT_CACHE_TTL=15*60*1000;
 
   function readRestaurantCache(key){
     const memory=restaurantRequestCache.get(key);
@@ -705,15 +705,19 @@ button,a,input,textarea,select{max-width:100%}
   async function apiRequest(endpoint,options={}){
     const method=String(options.method||'GET').toUpperCase();
     const cacheable=method==='GET'&&(endpoint==='/public/restaurants'||/^\/public\/restaurants\/[^?]+$/.test(endpoint));
+    const bypassCache=options.cacheBypass===true;
+    const requestOptions={...options};
+    delete requestOptions.cacheBypass;
     const cacheKey=`dn_restaurant_cache_${endpoint}`;
-    if(cacheable){
+    if(cacheable&&!bypassCache){
       const cached=readRestaurantCache(cacheKey);
       if(cached!==null)return cached;
       if(restaurantRequestPromises.has(cacheKey))return restaurantRequestPromises.get(cacheKey);
     }
+    if(cacheable&&bypassCache&&restaurantRequestPromises.has(cacheKey))return restaurantRequestPromises.get(cacheKey);
     const request=(async()=>{
       const response=await fetch(`${API_URL}${endpoint}`,{
-        ...options,
+        ...requestOptions,
         credentials:'include',
         headers:{'Content-Type':'application/json',...(options.headers||{})}
       });
@@ -735,7 +739,7 @@ button,a,input,textarea,select{max-width:100%}
     })();
     if(cacheable)restaurantRequestPromises.set(cacheKey,request);
     try{return await request}
-    finally{if(cacheable)restaurantRequestPromises.delete(cacheKey)}
+    finally{if(cacheable&&restaurantRequestPromises.get(cacheKey)===request)restaurantRequestPromises.delete(cacheKey)}
   }
 
   function formatMoney(value){
@@ -954,16 +958,19 @@ button,a,input,textarea,select{max-width:100%}
     renderKitchenGrid();
     renderChips();
     loadRestaurantMenu(currentKitchen.merchantId,false);
-    Promise.all(kitchens.map(kitchen=>loadFeaturedImage(kitchen)))
-      .then(()=>renderKitchenGrid())
-      .catch(()=>{});
+    const featuredBatchSize=4;
+    const loadFeaturedImagesInBatches=async()=>{
+      for(let index=0;index<kitchens.length;index+=featuredBatchSize){
+        const batch=kitchens.slice(index,index+featuredBatchSize);
+        await Promise.all(batch.map(kitchen=>loadFeaturedImage(kitchen)));
+        renderKitchenGrid();
+      }
+    };
+    loadFeaturedImagesInBatches().catch(()=>{});
 
     if(hasCachedRestaurants){
-      fetch(`${API_URL}/public/restaurants`,{credentials:'include',headers:{'Content-Type':'application/json'}})
-        .then(async response=>{
-          if(!response.ok)throw new Error('Could not refresh restaurants');
-          const contentType=response.headers.get('content-type')||'';
-          const freshData=contentType.includes('application/json')?await response.json():JSON.parse(await response.text());
+      apiRequest('/public/restaurants',{cacheBypass:true})
+        .then(freshData=>{
           const restaurants=Array.isArray(freshData)?freshData:Array.isArray(freshData?.restaurants)?freshData.restaurants:Array.isArray(freshData?.data)?freshData.data:[];
           writeRestaurantCache(cacheKey,restaurants);
           const selectedId=currentKitchen?.merchantId;
@@ -971,8 +978,14 @@ button,a,input,textarea,select{max-width:100%}
           currentKitchen=kitchens.find(k=>String(k.merchantId)===String(selectedId))||kitchens[0]||null;
           renderKitchenGrid();
           renderChips();
-          return Promise.all(kitchens.map(kitchen=>loadFeaturedImage(kitchen)))
-            .then(()=>renderKitchenGrid());
+          const refreshedBatchSize=4;
+          const refreshFeaturedImages=async()=>{
+            for(let index=0;index<kitchens.length;index+=refreshedBatchSize){
+              await Promise.all(kitchens.slice(index,index+refreshedBatchSize).map(kitchen=>loadFeaturedImage(kitchen)));
+              renderKitchenGrid();
+            }
+          };
+          return refreshFeaturedImages();
         })
         .catch(()=>{});
     }
